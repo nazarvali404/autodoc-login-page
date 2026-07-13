@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import {
   FileText, Shield, CheckCircle2, ChevronDown, LogOut, Star, FileCheck, ArrowRight, Download, X,
-  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, AlignJustify, Undo2, Redo2, Strikethrough, Subscript, Superscript, List, ListOrdered, Eraser, Table
+  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, AlignJustify, Undo2, Redo2, Strikethrough, Subscript, Superscript, List, ListOrdered, Eraser, Table,
+  MessageSquare, Send, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,40 @@ export default function ClientDashboardPage() {
   const [generating, setGenerating] = useState(false);
   const [successDoc, setSuccessDoc] = useState<{ title: string; html: string } | null>(null);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+
+  // Floating compliance support chatbot states
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot'; text: string }>>([
+    { sender: 'bot', text: "Hello! 👋 I'm your AutoDoc assistant. How can I help you today?" }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+
+  const handleSendChatMessage = (textToSubmit?: string) => {
+    const messageText = textToSubmit || chatInput;
+    if (!messageText.trim()) return;
+
+    // 1. Add user message
+    setChatMessages(prev => [...prev, { sender: 'user', text: messageText }]);
+    if (!textToSubmit) setChatInput('');
+
+    // 2. Compliance response
+    setTimeout(() => {
+      let reply = "I'm not sure about that. Try asking 'How to create a company?' or 'How do I download PDF?'.";
+      const cleaned = messageText.toLowerCase();
+
+      if (cleaned.includes('create company') || cleaned.includes('how to start') || cleaned.includes('how to create') || cleaned.includes('filing')) {
+        reply = "To start a filing, select the template card (e.g. 'create company') from the dashboard list. Click 'Start Filing Now', fill out the fields in the left panel, and review the compiled page on the right. When ready, click 'Submit Filing'.";
+      } else if (cleaned.includes('download') || cleaned.includes('pdf') || cleaned.includes('save') || cleaned.includes('export')) {
+        reply = "Once you submit a filing, a success overlay will open. You can immediately click 'Download PDF' to save the compiled corporate document to your local machine.";
+      } else if (cleaned.includes('template') || cleaned.includes('available') || cleaned.includes('what are')) {
+        reply = "Currently, you have the 'create company' compliance template active in your workspace. Select it to launch the interactive workspace editor.";
+      } else if (cleaned.includes('hello') || cleaned.includes('hi') || cleaned.includes('hey')) {
+        reply = "Hello! 👋 How can I help you with your compliance documents or templates today?";
+      }
+
+      setChatMessages(prev => [...prev, { sender: 'bot', text: reply }]);
+    }, 600);
+  };
 
   const clientEditorRef = useRef<HTMLDivElement>(null);
   const [clientEditorHtml, setClientEditorHtml] = useState<string>('');
@@ -997,6 +1032,123 @@ export default function ClientDashboardPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 5. Floating Compliance Support Chatbot */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <AnimatePresence>
+          {isChatOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className="w-80 sm:w-96 h-[450px] bg-white rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden mb-4"
+            >
+              {/* Chatbot Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold leading-tight">Compliance Assistant</h4>
+                    <span className="text-[10px] text-blue-100 font-semibold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span> Online Support
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="w-8 h-8 rounded-full text-white/80 hover:text-white hover:bg-white/10"
+                  onClick={() => setIsChatOpen(false)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Chatbot Messages List */}
+              <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/50">
+                {chatMessages.map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed ${
+                        msg.sender === 'user'
+                          ? 'bg-blue-600 text-white rounded-tr-none'
+                          : 'bg-white text-slate-800 border border-slate-100 shadow-xs rounded-tl-none'
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Quick Queries Buttons */}
+              <div className="px-4 py-2 border-t border-slate-100 bg-white flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleSendChatMessage("How to create a company?")}
+                  className="text-[10px] font-semibold bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 px-2.5 py-1 rounded-full transition-colors cursor-pointer"
+                >
+                  🏢 Create Company
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendChatMessage("How do I download PDF?")}
+                  className="text-[10px] font-semibold bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 px-2.5 py-1 rounded-full transition-colors cursor-pointer"
+                >
+                  📥 Download PDF
+                </button>
+              </div>
+
+              {/* Chatbot Input Footer */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendChatMessage();
+                }}
+                className="p-3 border-t border-slate-100 bg-white flex gap-2"
+              >
+                <Input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask about compliance or filing..."
+                  className="h-9 rounded-xl text-xs px-3 border-slate-200 focus:border-blue-500"
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0 shadow-sm"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </Button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Floating Toggle Button */}
+        <Button
+          type="button"
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-xl hover:scale-105 transition-transform flex items-center justify-center relative group cursor-pointer"
+        >
+          {isChatOpen ? (
+            <X className="w-6 h-6 transition-transform duration-200" />
+          ) : (
+            <>
+              <MessageSquare className="w-6 h-6 transition-transform duration-200" />
+              <span className="absolute -top-1.5 -right-1.5 w-5.5 h-5.5 rounded-full bg-emerald-500 text-white text-[9px] font-black border-2 border-white flex items-center justify-center animate-bounce">
+                1
+              </span>
+            </>
+          )}
+        </Button>
+      </div>
 
     </div>
   );

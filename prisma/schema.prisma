@@ -1,0 +1,193 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id       String  @id @default(uuid())
+  name     String
+  email    String  @unique
+  password String
+  role     String  // 'admin' | 'staff' | 'client'
+  avatar   String?
+  status   String  @default("Active")
+}
+
+model Company {
+  id                String   @id @default(uuid())
+  name              String
+  cin               String   @unique
+  type              String
+  status            String   // 'Active' | 'Pending' | 'Struck Off'
+  incorporationDate String
+  registeredOffice  String
+  email             String
+  phone             String
+  authorizedCapital String
+  paidUpCapital     String
+}
+
+model Director {
+  id              String   @id @default(uuid())
+  name            String
+  din             String   @unique
+  pan             String
+  aadhaar         String
+  email           String
+  phone           String
+  address         String
+  appointmentDate String
+  resignationDate String?
+  companyId       String
+  companyName     String
+  status          String   // 'Active' | 'Resigned' | 'Disqualified'
+}
+
+model Client {
+  id        String   @id @default(uuid())
+  name      String
+  company   String
+  contact   String
+  email     String
+  phone     String
+  address   String
+  status    String   // 'Active' | 'Inactive' | 'Pending'
+  createdAt String
+}
+
+model Auditor {
+  id              String   @id @default(uuid())
+  name            String
+  firmName        String
+  membershipNo    String
+  pan             String
+  email           String
+  phone           String
+  address         String
+  appointmentDate String
+  status          String   // 'Active' | 'Resigned'
+  companyName     String
+}
+
+model Shareholder {
+  id               String          @id @default(uuid())
+  name             String
+  shares           Int
+  percentage       Float
+  shareCertificate String
+  companyName      String
+  type             String          // 'Individual' | 'Body Corporate' | 'HUF' | 'Trust'
+  transferHistory  ShareTransfer[]
+}
+
+model ShareTransfer {
+  id            String      @id @default(uuid())
+  date          String
+  from          String
+  to            String
+  shares        Int
+  certificateNo String
+  shareholderId String?
+  shareholder   Shareholder? @relation(fields: [shareholderId], references: [id], onDelete: Cascade)
+}
+
+model ShareCapital {
+  id                 String @id @default(uuid())
+  companyName        String
+  authorizedCapital  String
+  paidUpCapital      String
+  faceValue          Float
+  totalShares        Int
+  equityShares       Int
+  preferenceShares   Int
+}
+
+model RegisteredOffice {
+  id            String @id @default(uuid())
+  companyName   String
+  address       String
+  city          String
+  state         String
+  pincode       String
+  effectiveDate String
+  status        String // 'Current' | 'Changed'
+}
+
+model Resolution {
+  id          String  @id @default(uuid())
+  title       String
+  type        String  // 'Board' | 'Special' | 'Ordinary'
+  companyName String
+  date        String
+  status      String  // 'Draft' | 'Approved' | 'Filed'
+  description String
+  documentUrl String?
+}
+
+model AnnualFiling {
+  id            String @id @default(uuid())
+  companyName   String
+  formType      String
+  filingDate    String
+  dueDate       String
+  status        String // 'Filed' | 'Pending' | 'Overdue'
+  financialYear String
+}
+
+model ShareCertificate {
+  id            String @id @default(uuid())
+  certificateNo String
+  companyName   String
+  holderName    String
+  shares        Int
+  issueDate     String
+  status        String // 'Active' | 'Cancelled' | 'Transferred'
+}
+
+model AlterationRecord {
+  id             String @id @default(uuid())
+  companyName    String
+  type           String // 'MOA' | 'AOA'
+  description    String
+  resolutionDate String
+  filingDate     String
+  status         String // 'Approved' | 'Pending' | 'Filed'
+}
+
+model DocumentTemplate {
+  id        String          @id @default(uuid())
+  name      String
+  category  String
+  createdAt String
+  updatedAt String
+  status    String          // 'Active' | 'Draft'
+  content   String?         // HTML/Text template content
+  pdfData   String?         // Base64 string of parsed or uploaded PDF template
+  fields    TemplateField[]
+  generated GeneratedDocument[]
+}
+
+model TemplateField {
+  id          String            @id @default(uuid())
+  name        String
+  type        String            // 'text' | 'date' | 'number' | 'dropdown' | 'email' | 'phone'
+  required    Boolean
+  defaultValue String?
+  optionsJson  String?           // For dropdown options (stored as JSON string)
+  templateId  String?
+  template    DocumentTemplate? @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+model GeneratedDocument {
+  id          String            @id @default(uuid())
+  title       String
+  content     String            // HTML body after field replacement
+  status      String            // 'Draft' | 'Final'
+  createdAt   String
+  templateId  String
+  template    DocumentTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
